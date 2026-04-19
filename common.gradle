@@ -91,13 +91,8 @@ test {
 
 jacocoTestReport {
     reports {
-        html.required = true
         xml.required = true
     }
-}
-
-tasks.named('test') {
-    finalizedBy jacocoTestReport
 }
 
 task sourcesJar(type: Jar, dependsOn: classes, description: 'Creates a jar from the source files.') {
