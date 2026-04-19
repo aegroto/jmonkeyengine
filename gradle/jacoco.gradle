@@ -64,7 +64,7 @@ reporting {
 }
 
 def jacocoSubprojects = subprojects.findAll {
-    it.file("src/main/java").exists() && !it.name.endsWith("-native")
+    it.file("src/main/java").exists() && it.file("src/test/java").exists()
 }
 
 dependencies {
@@ -124,6 +124,7 @@ def createProjectIndex = tasks.register('createProjectIndex') {
                         def xmlFile = file("${proj.buildDir}/reports/jacoco/test/jacocoTestReport.xml")
                         if (xmlFile.exists()) {
                             def parser = new groovy.xml.XmlSlurper(false, false)
+                            parser.setFeature("http://apache.org/xml/features/disallow-doctype-decl", false)
                             parser.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false)
                             def counter = parser.parse(xmlFile)
                                 .depthFirst()
