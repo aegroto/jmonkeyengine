@@ -96,6 +96,28 @@ jacocoTestReport {
     }
 }
 
+jacocoTestReport {
+    doLast {
+        def css = file("$rootDir/config/jacoco/jacoco-custom.css")
+        if (css.exists()) {
+            file("$buildDir/reports/jacoco/test/html/jacoco-resources/report.css").text = css.text
+        }
+        def htmlIndex = file("$buildDir/reports/jacoco/test/html/index.html")
+        if (htmlIndex.exists()) {
+            def content = htmlIndex.text
+            def linkHtml = '''<div style="position:fixed;top:10px;right:20px;z-index:9999;background:#ffd000;padding:8px 16px;"><a href="../../../build/reports/jacoco/testCodeCoverageReport/html/index.html" style="color:#1b1b1b;text-decoration:none;font-weight:bold;">Aggregate Report</a></div>'''
+            // Insert at the start of body content
+            content = content.replaceAll(~/<body[^>]*>/) { it + linkHtml }
+            // Add custom CSS to head
+            if (!content.contains('jacoco-custom.css')) {
+                content = content.replace('</head>', '''<link rel="stylesheet" href="jacoco-custom.css">
+</head>''')
+            }
+            htmlIndex.text = content
+        }
+    }
+}
+
 task sourcesJar(type: Jar, dependsOn: classes, description: 'Creates a jar from the source files.') {
     archiveClassifier = 'sources'
     from sourceSets*.allSource
