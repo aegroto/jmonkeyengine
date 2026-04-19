@@ -29,9 +29,10 @@ subprojects {
             // Patch HTML files: add a Home link and reference the custom CSS.
             def htmlDir = file("$buildDir/reports/jacoco/test/html")
             if (htmlDir.exists()) {
-                def homeHref = "file://${rootProject.projectDir.absolutePath}/build/reports/jacoco/index.html"
+                def rootIndexFile = rootProject.file("build/reports/jacoco/index.html")
                 htmlDir.eachFileRecurse { f ->
                     if (f.name.endsWith('.html') && !f.name.startsWith('jacoco-')) {
+                        def homeHref = f.toPath().parent.relativize(rootIndexFile.toPath()).toString()
                         def content = f.text
                         if (!content.contains('class="el_home"')) {
                             content = content.replaceAll(
@@ -63,8 +64,7 @@ reporting {
 }
 
 def jacocoSubprojects = subprojects.findAll {
-    it.name in ['jme3-core', 'jme3-desktop', 'jme3-effects', 'jme3-jbullet',
-                'jme3-networking', 'jme3-plugins', 'jme3-terrain', 'jme3-niftygui']
+    it.file("src/main/java").exists() && !it.name.endsWith("-native")
 }
 
 dependencies {
@@ -123,8 +123,9 @@ def createProjectIndex = tasks.register('createProjectIndex') {
                     jacocoSubprojects.each { proj ->
                         def xmlFile = file("${proj.buildDir}/reports/jacoco/test/jacocoTestReport.xml")
                         if (xmlFile.exists()) {
-                            def counter = new groovy.xml.XmlSlurper()
-                                .parseText(xmlFile.text.replaceFirst(/<!DOCTYPE[^>]*>/, ''))
+                            def parser = new groovy.xml.XmlSlurper(false, false)
+                            parser.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false)
+                            def counter = parser.parse(xmlFile)
                                 .depthFirst()
                                 .find { it.name() == 'counter' && it.@type == 'INSTRUCTION' }
                             def missed  = counter ? counter.@missed.toFloat()  : 0f
