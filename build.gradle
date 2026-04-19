@@ -211,6 +211,10 @@ tasks.register('jacocoTestReport') {
 
         xmlFile.append('</report>')
 
+        if (jacocoFormat == 'html' && htmlDir.exists()) {
+            injectCustomCss(htmlDir)
+        }
+
         if (haveData) {
             println("Aggregate JaCoCo report generated: ${outputDir.absolutePath}")
             if (jacocoFormat == 'html') {
@@ -219,6 +223,46 @@ tasks.register('jacocoTestReport') {
             println("XML report: ${xmlFile.absolutePath}")
         } else {
             println('No JaCoCo execution data found. Run tests first.')
+        }
+    }
+}
+
+def injectCustomCss(File htmlDir) {
+    def cssFile = file("${rootDir}/config/jacoco/jacoco-custom.css")
+    if (!cssFile.exists()) {
+        return
+    }
+
+    def customCssName = 'jacoco-custom.css'
+    def targetCssFile = new File(htmlDir, customCssName)
+    if (!targetCssFile.exists()) {
+        ant.copy(file: cssFile.absolutePath, tofile: targetCssFile.absolutePath)
+    }
+
+    htmlDir.eachFile { f ->
+        if (f.name.endsWith('.html')) {
+            def content = f.text
+            def replaced = false
+            
+            if (content.contains('href="jacoco-resources/report.css"')) {
+                content = content.replace(
+                    '<link rel="stylesheet" href="jacoco-resources/report.css"',
+                    '<link rel="stylesheet" href="jacoco-custom.css">\n    <link rel="stylesheet" href="jacoco-resources/report.css"'
+                )
+                replaced = true
+            }
+            
+            if (content.contains('href="../jacoco-resources/report.css"')) {
+                content = content.replace(
+                    '<link rel="stylesheet" href="../jacoco-resources/report.css"',
+                    '<link rel="stylesheet" href="../jacoco-custom.css">\n    <link rel="stylesheet" href="../jacoco-resources/report.css"'
+                )
+                replaced = true
+            }
+
+            if (replaced) {
+                f.text = content
+            }
         }
     }
 }
