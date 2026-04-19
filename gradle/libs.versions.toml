@@ -3,6 +3,7 @@
 [versions]
 
 checkstyle = "13.3.0"
+jacoco = "0.8.12"
 lwjgl3 = "3.4.1"
 nifty = "1.4.3"
 spotbugs = "4.9.8"
@@ -50,3 +51,4 @@ vecmath = "javax.vecmath:vecmath:1.5.2"
 [bundles]
 
 [plugins]
+jacoco = { id = "jacoco", version.ref = "jacoco" }

@@ -8,6 +8,7 @@ apply plugin: 'maven-publish'
 apply plugin: 'signing'
 apply plugin: 'eclipse'
 apply plugin: 'checkstyle'
+apply plugin: 'jacoco'
 
 eclipse.jdt.file.withProperties { props ->
     props.setProperty "org.eclipse.jdt.core.circularClasspath", "warning"
@@ -86,6 +87,17 @@ test {
     testLogging {
         exceptionFormat = 'full'
     }
+}
+
+jacocoTestReport {
+    reports {
+        html.required = true
+        xml.required = true
+    }
+}
+
+tasks.named('test') {
+    finalizedBy jacocoTestReport
 }
 
 task sourcesJar(type: Jar, dependsOn: classes, description: 'Creates a jar from the source files.') {

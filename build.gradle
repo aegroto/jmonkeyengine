@@ -173,6 +173,56 @@ ext {
     ndkExists       = false
 }
 
+def jacocoFormat = rootProject.findProperty('jacocoFormat') ?: 'html'
+
+tasks.register('jacocoTestReport') {
+    dependsOn(subprojects.collect { it.tasks.named('jacocoTestReport') })
+    description = 'Generates an aggregate JaCoCo coverage report for all subprojects by copying individual reports.'
+    group = 'reporting'
+
+    doLast {
+        def outputDir = file("${layout.buildDirectory.get().asFile}/reports/jacoco/aggregate")
+        outputDir.mkdirs()
+
+        def xmlFile = new File(outputDir, 'jacoco.xml')
+        def htmlDir = new File(outputDir, 'html')
+
+        def haveData = false
+        xmlFile.text = '<?xml version="1.0" encoding="UTF-8"?>\n<report name="jmonkeyengine">\n'
+
+        subprojects.each { proj ->
+            def projReportDir = new File("${proj.buildDir}/reports/jacoco/test")
+            if (projReportDir.exists()) {
+                def projXml = new File(projReportDir, 'jacocoTestReport.xml')
+                if (projXml.exists()) {
+                    haveData = true
+                    xmlFile.append(projXml.text.replace('<?xml version="1.0" encoding="UTF-8"?>\n', '').replace('</report>', ''))
+                    if (jacocoFormat == 'html') {
+                        def projHtml = new File(projReportDir, 'html')
+                        if (projHtml.exists() && projHtml.directory) {
+                            projHtml.eachFile { f -> 
+                                copy { from f into htmlDir }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        xmlFile.append('</report>')
+
+        if (haveData) {
+            println("Aggregate JaCoCo report generated: ${outputDir.absolutePath}")
+            if (jacocoFormat == 'html') {
+                println("HTML report: ${htmlDir.absolutePath}")
+            }
+            println("XML report: ${xmlFile.absolutePath}")
+        } else {
+            println('No JaCoCo execution data found. Run tests first.')
+        }
+    }
+}
+
 task configureAndroidNDK {
     def ndkBuildFile = "ndk-build"
     // if windows, use ndk-build.cmd instead
