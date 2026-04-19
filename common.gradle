@@ -95,6 +95,7 @@ jacocoTestReport {
         html.required = true
     }
     inputs.file("$rootDir/config/jacoco/jacoco-custom.css")
+    inputs.file("$rootDir/config/jacoco/prettify-custom.css")
 }
 
 jacocoTestReport {
@@ -102,6 +103,10 @@ jacocoTestReport {
         def css = file("$rootDir/config/jacoco/jacoco-custom.css")
         if (css.exists()) {
             file("$buildDir/reports/jacoco/test/html/jacoco-resources/report.css").text = css.text
+        }
+        def prettify = file("$rootDir/config/jacoco/prettify-custom.css")
+        if (prettify.exists()) {
+            file("$buildDir/reports/jacoco/test/html/jacoco-resources/prettify.css").text = prettify.text
         }
         def htmlDir = file("$buildDir/reports/jacoco/test/html")
         if (htmlDir.exists()) {

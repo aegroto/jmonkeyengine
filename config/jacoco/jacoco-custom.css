@@ -270,13 +270,13 @@ pre.Code {
 }
 
 /* Source view line coverage highlighting */
-.fc  { background-color: #0d260d; color: #e0ffe0; }
-.nc  { background-color: #260d0d; color: #ffe0e0; }
-.pc  { background-color: #26200d; color: #ffffcc; }
+.fc  { background-color: #1a5c1a; color: #ffffff; }
+.nc  { background-color: #5c1a1a; color: #ffffff; }
+.pc  { background-color: #5c4a00; color: #ffffff; }
 
-.bfc { background-color: #0d260d; }
-.bpc { background-color: #26200d; }
-.bnc { background-color: #260d0d; }
+.bfc { background-color: #1a5c1a; }
+.bpc { background-color: #5c4a00; }
+.bnc { background-color: #5c1a1a; }
 
 code.linenumber {
   color: var(--foreground2);
