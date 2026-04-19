@@ -78,15 +78,44 @@ a:hover {
 }
 
 /* Breadcrumb */
-.BreadCrumb {
+.BreadCrumb,
+.breadcrumb {
   background: var(--background2);
   border-radius: 0.3rem;
-  padding: 0.5rem 1rem;
+  padding: 0.8rem 1.2rem;
   margin-bottom: 1rem;
 }
 
-.BreadCrumb a {
+.BreadCrumb a,
+.breadcrumb a {
   color: var(--foreground2);
+  margin-right: 0.5rem;
+}
+
+.breadcrumb .info {
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.breadcrumb .info a::after {
+  content: " / ";
+  color: var(--foreground);
+  margin-left: 0.5rem;
+}
+
+.breadcrumb .info a:last-of-type::after {
+  content: "";
+}
+
+.breadcrumb .el_home {
+  color: var(--highlightFg);
+  font-weight: bold;
+}
+
+.breadcrumb .el_report,
+.breadcrumb .el_package {
+  display: inline-block;
+  margin: 0 0.3rem;
 }
 
 /* Report container */

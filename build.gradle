@@ -246,9 +246,13 @@ def createProjectIndex = tasks.register('createProjectIndex') {
                     missed += matcher.group(1).toFloat()
                     covered += matcher.group(2).toFloat()
                 }
-                def instructionPct = (missed + covered) > 0 ? (covered / (missed + covered) * 100).round(1) : 0
-                def cssClass = instructionPct < 50 ? 'low' : 'high'
-                html.append("        <tr><td>${proj.name}</td><td class=\"${cssClass}\">${instructionPct}%</td><td><a href=\"../../../${proj.name}/build/reports/jacoco/test/html/index.html\">${proj.name}</a></td></tr>\n")
+                def total = missed + covered
+                def instructionPct = total > 0 ? ((covered / total) * 100).round() : 0
+                def styleClass = instructionPct < 50 ? 'low' : 'high'
+                def row = "        <tr><td>${proj.name}</td><td class='${styleClass}'>${instructionPct}%</td><td><a href='../../../${proj.name}/build/reports/jacoco/test/html/index.html'>${proj.name}</a></td></tr>"
+                html.append(row)
+            } else {
+                html.append("        <tr><td>${proj.name}</td><td>-</td><td>-</td></tr>")
             }
         }
 

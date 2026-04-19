@@ -102,18 +102,25 @@ jacocoTestReport {
         if (css.exists()) {
             file("$buildDir/reports/jacoco/test/html/jacoco-resources/report.css").text = css.text
         }
-        def htmlIndex = file("$buildDir/reports/jacoco/test/html/index.html")
-        if (htmlIndex.exists()) {
-            def content = htmlIndex.text
-            def linkHtml = '''<div style="position:fixed;top:10px;right:20px;z-index:9999;background:#ffd000;padding:8px 16px;"><a href="../../../build/reports/jacoco/testCodeCoverageReport/html/index.html" style="color:#1b1b1b;text-decoration:none;font-weight:bold;">Aggregate Report</a></div>'''
-            // Insert at the start of body content
-            content = content.replaceAll(~/<body[^>]*>/) { it + linkHtml }
-            // Add custom CSS to head
-            if (!content.contains('jacoco-custom.css')) {
-                content = content.replace('</head>', '''<link rel="stylesheet" href="jacoco-custom.css">
-</head>''')
+        def htmlDir = file("$buildDir/reports/jacoco/test/html")
+        if (htmlDir.exists()) {
+            htmlDir.eachFileRecurse { file ->
+                if (file.name.endsWith('.html') && !file.name.startsWith('jacoco-')) {
+                    def content = file.text
+                    // Add Home link floating on left side (if not already present)
+                    if (!content.contains('position:fixed;top:10px;left:20px')) {
+                        def homeLink = '<div style="position:fixed;top:10px;left:20px;z-index:9999;background:#ffd000;padding:8px 16px;"><a href="../../../../../../build/reports/jacoco/index.html" style="color:#1b1b1b;text-decoration:none;font-weight:bold;">Home</a></div>'
+                        content = content.replaceAll(~/<body[^>]*>/) { it + homeLink }
+                        // Remove old floating button from right side
+                        content = content.replaceAll(~/<div style="position:fixed;top:10px;right:20px;[^>]*>.*?<\/div>/, '')
+                    }
+                    // Add custom CSS to head for index.html only
+                    if (file.name == 'index.html' && !content.contains('jacoco-custom.css')) {
+                        content = content.replace('</head>', '<link rel="stylesheet" href="jacoco-custom.css">\n</head>')
+                    }
+                    file.text = content
+                }
             }
-            htmlIndex.text = content
         }
     }
 }
