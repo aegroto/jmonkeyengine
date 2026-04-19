@@ -127,8 +127,7 @@ def createProjectIndex = tasks.register('createProjectIndex') {
                             parser.setFeature("http://apache.org/xml/features/disallow-doctype-decl", false)
                             parser.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false)
                             def counter = parser.parse(xmlFile)
-                                .depthFirst()
-                                .find { it.name() == 'counter' && it.@type == 'INSTRUCTION' }
+                                .counter.find { it.@type == 'INSTRUCTION' }
                             def missed  = counter ? counter.@missed.toFloat()  : 0f
                             def covered = counter ? counter.@covered.toFloat() : 0f
                             def total   = missed + covered
