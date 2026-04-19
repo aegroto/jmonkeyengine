@@ -240,10 +240,11 @@ def createProjectIndex = tasks.register('createProjectIndex') {
                 def text = xmlFile.text
                 def missed = 0f
                 def covered = 0f
-                def matcher = text =~ /<counter type="INSTRUCTION" missed="(\d+)" covered="(\d+)"/
-                if (matcher) {
-                    missed = matcher[0][1].toFloat()
-                    covered = matcher[0][2].toFloat()
+                def pattern = ~/<counter type="INSTRUCTION" missed="(\d+)" covered="(\d+)"/
+                def matcher = pattern.matcher(text)
+                while (matcher.find()) {
+                    missed += matcher.group(1).toFloat()
+                    covered += matcher.group(2).toFloat()
                 }
                 def instructionPct = (missed + covered) > 0 ? (covered / (missed + covered) * 100).round(1) : 0
                 def cssClass = instructionPct < 50 ? 'low' : 'high'
