@@ -8,7 +8,6 @@ apply plugin: 'maven-publish'
 apply plugin: 'signing'
 apply plugin: 'eclipse'
 apply plugin: 'checkstyle'
-apply plugin: 'jacoco'
 
 eclipse.jdt.file.withProperties { props ->
     props.setProperty "org.eclipse.jdt.core.circularClasspath", "warning"
@@ -86,46 +85,6 @@ test {
     useJUnitPlatform()
     testLogging {
         exceptionFormat = 'full'
-    }
-}
-
-jacocoTestReport {
-    reports {
-        xml.required = true
-        html.required = true
-    }
-    inputs.file("$rootDir/config/jacoco/jacoco-custom.css")
-    inputs.file("$rootDir/config/jacoco/prettify-custom.css")
-}
-
-jacocoTestReport {
-    doLast {
-        def css = file("$rootDir/config/jacoco/jacoco-custom.css")
-        if (css.exists()) {
-            file("$buildDir/reports/jacoco/test/html/jacoco-resources/report.css").text = css.text
-        }
-        def prettify = file("$rootDir/config/jacoco/prettify-custom.css")
-        if (prettify.exists()) {
-            file("$buildDir/reports/jacoco/test/html/jacoco-resources/prettify.css").text = prettify.text
-        }
-        def htmlDir = file("$buildDir/reports/jacoco/test/html")
-        if (htmlDir.exists()) {
-            htmlDir.eachFileRecurse { file ->
-                if (file.name.endsWith('.html') && !file.name.startsWith('jacoco-')) {
-                    def content = file.text
-                    // Add Home link to breadcrumb (before the span), if not already present
-                    if (!content.contains('class="el_home"')) {
-                        def homeLink = '<a class="el_home" href="file://' + rootProject.projectDir.absolutePath + '/build/reports/jacoco/index.html">Home</a> '
-                        content = content.replaceAll(~/(<span class="info">)/, '$1' + homeLink)
-                    }
-                    // Add custom CSS to head for index.html only
-                    if (file.name == 'index.html' && !content.contains('jacoco-custom.css')) {
-                        content = content.replace('</head>', '<link rel="stylesheet" href="jacoco-custom.css">\n</head>')
-                    }
-                    file.text = content
-                }
-            }
-        }
     }
 }
 

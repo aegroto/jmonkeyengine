@@ -1,0 +1,167 @@
+import groovy.xml.MarkupBuilder
+
+// ---------------------------------------------------------------------------
+// JaCoCo coverage — root project configuration
+// ---------------------------------------------------------------------------
+
+apply plugin: 'jacoco-report-aggregation'
+
+// Apply jacoco to every subproject (common.gradle also does this, but being
+// explicit here keeps all JaCoCo concerns in one place).
+subprojects {
+    apply plugin: 'jacoco'
+
+    // Per-subproject report: enable both XML (for aggregation) and HTML.
+    jacocoTestReport {
+        reports {
+            xml.required  = true
+            html.required = true
+        }
+
+        inputs.file("$rootDir/config/jacoco/jacoco-custom.css")
+        inputs.file("$rootDir/config/jacoco/prettify-custom.css")
+
+        doLast {
+            // Inject custom CSS into the per-project HTML report.
+            def resourcesDir = file("$buildDir/reports/jacoco/test/html/jacoco-resources")
+            injectCss(resourcesDir, rootDir)
+
+            // Patch HTML files: add a Home link and reference the custom CSS.
+            def htmlDir = file("$buildDir/reports/jacoco/test/html")
+            if (htmlDir.exists()) {
+                def homeHref = "file://${rootProject.projectDir.absolutePath}/build/reports/jacoco/index.html"
+                htmlDir.eachFileRecurse { f ->
+                    if (f.name.endsWith('.html') && !f.name.startsWith('jacoco-')) {
+                        def content = f.text
+                        if (!content.contains('class="el_home"')) {
+                            content = content.replaceAll(
+                                ~/(<span class="info">)/,
+                                '<a class="el_home" href="' + homeHref + '">Home</a> $1'
+                            )
+                        }
+                        if (f.name == 'index.html' && !content.contains('jacoco-custom.css')) {
+                            content = content.replace('</head>', '<link rel="stylesheet" href="jacoco-custom.css">\n</head>')
+                        }
+                        f.text = content
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Aggregated report
+// ---------------------------------------------------------------------------
+
+reporting {
+    reports {
+        testCodeCoverageReport(JacocoCoverageReport) {
+            testSuiteName = "test"
+        }
+    }
+}
+
+def jacocoSubprojects = subprojects.findAll {
+    it.name in ['jme3-core', 'jme3-desktop', 'jme3-effects', 'jme3-jbullet',
+                'jme3-networking', 'jme3-plugins', 'jme3-terrain', 'jme3-niftygui']
+}
+
+dependencies {
+    jacocoAggregation jacocoSubprojects
+}
+
+testCodeCoverageReport {
+    jacocoSubprojects.each { proj ->
+        dependsOn proj.tasks.named('test')
+        dependsOn proj.tasks.named('jacocoTestReport')
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Post-processing tasks
+// ---------------------------------------------------------------------------
+
+def injectJacocoCustomCss = tasks.register('injectJacocoCustomCss') {
+    dependsOn testCodeCoverageReport
+    inputs.file("$rootDir/config/jacoco/jacoco-custom.css")
+    inputs.file("$rootDir/config/jacoco/prettify-custom.css")
+    doLast {
+        def resourcesDir = file("$buildDir/reports/jacoco/testCodeCoverageReport/html/jacoco-resources")
+        injectCss(resourcesDir, rootDir)
+    }
+}
+
+def createProjectIndex = tasks.register('createProjectIndex') {
+    dependsOn testCodeCoverageReport
+    doLast {
+        def outputDir = file("$buildDir/reports/jacoco")
+        outputDir.mkdirs()
+
+        def writer = new StringWriter()
+        def html   = new MarkupBuilder(writer)
+
+        html.html {
+            head {
+                title('jMonkeyEngine Code Coverage')
+                style(type: 'text/css', '''
+                    body  { font-family: Arial, sans-serif; margin: 40px; background: #1b1b1b; color: #e7e7e7; }
+                    h1    { color: #ffd000; }
+                    table { border-collapse: collapse; margin-top: 20px; }
+                    th, td { padding: 12px 20px; text-align: left; border-bottom: 1px solid #444; }
+                    th    { background: #272727; }
+                    a     { color: #ffd000; text-decoration: none; }
+                    a:hover { text-decoration: underline; }
+                    .low  { color: #ff6600; }
+                    .high { color: #7fcc00; }
+                ''')
+            }
+            body {
+                h1('jMonkeyEngine Code Coverage')
+                table {
+                    tr { th('Project'); th('Coverage'); th('Report') }
+                    jacocoSubprojects.each { proj ->
+                        def xmlFile = file("${proj.buildDir}/reports/jacoco/test/jacocoTestReport.xml")
+                        if (xmlFile.exists()) {
+                            def counter = new groovy.xml.XmlSlurper()
+                                .parseText(xmlFile.text.replaceFirst(/<!DOCTYPE[^>]*>/, ''))
+                                .depthFirst()
+                                .find { it.name() == 'counter' && it.@type == 'INSTRUCTION' }
+                            def missed  = counter ? counter.@missed.toFloat()  : 0f
+                            def covered = counter ? counter.@covered.toFloat() : 0f
+                            def total   = missed + covered
+                            def pct     = total > 0 ? ((covered / total) * 100).round() : 0
+                            def css     = pct < 50 ? 'low' : 'high'
+                            def href    = "../../../${proj.name}/build/reports/jacoco/test/html/index.html"
+                            tr {
+                                td(proj.name)
+                                td(class: css, "${pct}%")
+                                td { a(href: href, proj.name) }
+                            }
+                        } else {
+                            tr { td(proj.name); td('-'); td('-') }
+                        }
+                    }
+                }
+            }
+        }
+
+        new File(outputDir, 'index.html').text = '<!DOCTYPE html>\n' + writer.toString()
+        println("\nJaCoCo project index: file://${outputDir.absolutePath}/index.html")
+    }
+}
+
+testCodeCoverageReport.finalizedBy injectJacocoCustomCss, createProjectIndex
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+def injectCss(File resourcesDir, File rootDir) {
+    def report   = new File(resourcesDir, 'report.css')
+    def prettify = new File(resourcesDir, 'prettify.css')
+    def srcReport   = new File(rootDir, 'config/jacoco/jacoco-custom.css')
+    def srcPrettify = new File(rootDir, 'config/jacoco/prettify-custom.css')
+    if (srcReport.exists()   && report.parentFile.exists())   report.text   = srcReport.text
+    if (srcPrettify.exists() && prettify.parentFile.exists()) prettify.text = srcPrettify.text
+}

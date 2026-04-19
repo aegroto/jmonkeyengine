@@ -13,8 +13,6 @@ buildscript {
 }
 
 import org.gradle.api.file.RelativePath
-import org.gradle.api.tasks.testing.Test
-import groovy.xml.XmlSlurper
 
 // Set the license for IDEs that understand this
 ext.license = file("$rootDir/source-file-header-template.txt")
@@ -175,114 +173,7 @@ ext {
     ndkExists       = false
 }
 
-apply plugin: 'jacoco-report-aggregation'
-
-subprojects {
-    apply plugin: 'jacoco'
-}
-
-reporting {
-    reports {
-        testCodeCoverageReport(JacocoCoverageReport) {
-            testSuiteName = "test"
-        }
-    }
-}
-
-def jacocoSubprojects = subprojects.findAll { 
-    it.name in ['jme3-core', 'jme3-desktop', 'jme3-effects', 'jme3-jbullet', 'jme3-networking', 'jme3-plugins', 'jme3-terrain', 'jme3-niftygui']
-}
-
-dependencies {
-    jacocoAggregation jacocoSubprojects
-}
-
-testCodeCoverageReport {
-    jacocoSubprojects.each { proj ->
-        dependsOn proj.tasks.named('test')
-    }
-    jacocoSubprojects.each { proj ->
-        dependsOn proj.tasks.named('jacocoTestReport')
-    }
-}
-
-def createProjectIndex = tasks.register('createProjectIndex') {
-    dependsOn testCodeCoverageReport
-    doLast {
-        def html = new StringBuilder()
-        html.append('''<!DOCTYPE html>
-<html>
-<head>
-    <title>jMonkeyEngine Code Coverage</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 40px; background: #1b1b1b; color: #e7e7e7; }
-        h1 { color: #ffd000; }
-        table { border-collapse: collapse; margin-top: 20px; }
-        th, td { padding: 12px 20px; text-align: left; border-bottom: 1px solid #444; }
-        th { background: #272727; }
-        a { color: #ffd000; text-decoration: none; }
-        a:hover { text-decoration: underline; }
-        .coverage { color: #7fcc00; }
-        .low { color: #ff6600; }
-        .high { color: #7fcc00; }
-    </style>
-</head>
-<body>
-    <h1>jMonkeyEngine Code Coverage</h1>
-    <table>
-        <tr><th>Project</th><th>Coverage</th><th>Report</th></tr>
-''')
-
-        jacocoSubprojects.each { proj ->
-            def projDir = file("${proj.buildDir}/reports/jacoco/test")
-            def xmlFile = new File(projDir, 'jacocoTestReport.xml')
-            if (xmlFile.exists()) {
-                def text = xmlFile.text
-                def missed = 0f
-                def covered = 0f
-                def pattern = ~/<counter type="INSTRUCTION" missed="(\d+)" covered="(\d+)"/
-                def matcher = pattern.matcher(text)
-                while (matcher.find()) {
-                    missed += matcher.group(1).toFloat()
-                    covered += matcher.group(2).toFloat()
-                }
-                def total = missed + covered
-                def instructionPct = total > 0 ? ((covered / total) * 100).round() : 0
-                def styleClass = instructionPct < 50 ? 'low' : 'high'
-                def row = "        <tr><td>${proj.name}</td><td class='${styleClass}'>${instructionPct}%</td><td><a href='../../../${proj.name}/build/reports/jacoco/test/html/index.html'>${proj.name}</a></td></tr>"
-                html.append(row)
-            } else {
-                html.append("        <tr><td>${proj.name}</td><td>-</td><td>-</td></tr>")
-            }
-        }
-
-        html.append('''    </table>
-</body>
-</html>
-''')
-        def outputDir = file("$buildDir/reports/jacoco")
-        outputDir.mkdirs()
-        new File(outputDir, 'index.html').text = html.toString()
-        println("\nJaCoCo project index: file://${outputDir.absolutePath}/index.html")
-    }
-}
-
-tasks.register('injectJacocoCustomCss') {
-    dependsOn testCodeCoverageReport
-    inputs.file("$rootDir/config/jacoco/jacoco-custom.css")
-    inputs.file("$rootDir/config/jacoco/prettify-custom.css")
-    doLast {
-        def css = file("$rootDir/config/jacoco/jacoco-custom.css")
-        if (css.exists()) {
-            file("$buildDir/reports/jacoco/testCodeCoverageReport/html/jacoco-resources/report.css").text = css.text
-        }
-        def prettify = file("$rootDir/config/jacoco/prettify-custom.css")
-        if (prettify.exists()) {
-            file("$buildDir/reports/jacoco/testCodeCoverageReport/html/jacoco-resources/prettify.css").text = prettify.text
-        }
-    }
-}
-testCodeCoverageReport.finalizedBy injectJacocoCustomCss, createProjectIndex.get()
+apply from: 'gradle/jacoco.gradle'
 
 task configureAndroidNDK {
     def ndkBuildFile = "ndk-build"
