@@ -32,7 +32,7 @@ subprojects {
                 def rootIndexFile = rootProject.file("build/reports/jacoco/index.html")
                 htmlDir.eachFileRecurse { f ->
                     if (f.name.endsWith('.html') && !f.name.startsWith('jacoco-')) {
-                        def homeHref = f.toPath().parent.relativize(rootIndexFile.toPath()).toString()
+                        def homeHref = f.toPath().parent.relativize(rootIndexFile.toPath()).toString().replace('\\', '/')
                         def content = f.text
                         if (!content.contains('class="el_home"')) {
                             content = content.replaceAll(
@@ -63,8 +63,9 @@ reporting {
     }
 }
 
-def jacocoSubprojects = subprojects.findAll {
-    it.file("src/main/java").exists() && it.file("src/test/java").exists()
+def jacocoSubprojects = subprojects.findAll { p ->
+    (p.file("src/main/java").exists() || p.file("src/main/groovy").exists()) &&
+    (p.file("src/test/java").exists() || p.file("src/test/groovy").exists())
 }
 
 dependencies {
@@ -131,9 +132,10 @@ def createProjectIndex = tasks.register('createProjectIndex') {
                             def missed  = counter ? counter.@missed.toFloat()  : 0f
                             def covered = counter ? counter.@covered.toFloat() : 0f
                             def total   = missed + covered
-                            def pct     = total > 0 ? ((covered / total) * 100).round() : 0
+                            def pct     = total > 0 ? ((covered / total) * 100).round(1) : 0
                             def css     = pct < 50 ? 'low' : 'high'
-                            def href    = "../../../${proj.name}/build/reports/jacoco/test/html/index.html"
+                            def reportFile = new File(proj.buildDir, "reports/jacoco/test/html/index.html")
+                            def href = outputDir.toPath().relativize(reportFile.toPath()).toString().replace('\\', '/')
                             tr {
                                 td(proj.name)
                                 td(class: css, "${pct}%")
