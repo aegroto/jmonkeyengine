@@ -93,14 +93,14 @@ a:hover {
 }
 
 .breadcrumb .info {
-  display: block;
-  margin-bottom: 0.5rem;
+  display: inline;
 }
 
+.breadcrumb .el_home::after,
 .breadcrumb .info a::after {
-  content: " / ";
+  content: " | ";
   color: var(--foreground);
-  margin-left: 0.5rem;
+  padding: 0 0.2rem;
 }
 
 .breadcrumb .info a:last-of-type::after {
