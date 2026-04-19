@@ -14,6 +14,7 @@ buildscript {
 
 import org.gradle.api.file.RelativePath
 import org.gradle.api.tasks.testing.Test
+import groovy.xml.XmlSlurper
 
 // Set the license for IDEs that understand this
 ext.license = file("$rootDir/source-file-header-template.txt")
@@ -197,7 +198,68 @@ dependencies {
 }
 
 testCodeCoverageReport {
-    dependsOn jacocoSubprojects.collectMany { it.tasks.withType(Test) }
+    jacocoSubprojects.each { proj ->
+        dependsOn proj.tasks.named('test')
+    }
+    jacocoSubprojects.each { proj ->
+        dependsOn proj.tasks.named('jacocoTestReport')
+    }
+}
+
+def createProjectIndex = tasks.register('createProjectIndex') {
+    dependsOn testCodeCoverageReport
+    doLast {
+        def html = new StringBuilder()
+        html.append('''<!DOCTYPE html>
+<html>
+<head>
+    <title>jMonkeyEngine Code Coverage</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background: #1b1b1b; color: #e7e7e7; }
+        h1 { color: #ffd000; }
+        table { border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px 20px; text-align: left; border-bottom: 1px solid #444; }
+        th { background: #272727; }
+        a { color: #ffd000; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .coverage { color: #7fcc00; }
+        .low { color: #ff6600; }
+        .high { color: #7fcc00; }
+    </style>
+</head>
+<body>
+    <h1>jMonkeyEngine Code Coverage</h1>
+    <table>
+        <tr><th>Project</th><th>Coverage</th><th>Report</th></tr>
+''')
+
+        jacocoSubprojects.each { proj ->
+            def projDir = file("${proj.buildDir}/reports/jacoco/test")
+            def xmlFile = new File(projDir, 'jacocoTestReport.xml')
+            if (xmlFile.exists()) {
+                def text = xmlFile.text
+                def missed = 0f
+                def covered = 0f
+                def matcher = text =~ /<counter type="INSTRUCTION" missed="(\d+)" covered="(\d+)"/
+                if (matcher) {
+                    missed = matcher[0][1].toFloat()
+                    covered = matcher[0][2].toFloat()
+                }
+                def instructionPct = (missed + covered) > 0 ? (covered / (missed + covered) * 100).round(1) : 0
+                def cssClass = instructionPct < 50 ? 'low' : 'high'
+                html.append("        <tr><td>${proj.name}</td><td class=\"${cssClass}\">${instructionPct}%</td><td><a href=\"../../../${proj.name}/build/reports/jacoco/test/html/index.html\">${proj.name}</a></td></tr>\n")
+            }
+        }
+
+        html.append('''    </table>
+</body>
+</html>
+''')
+        def outputDir = file("$buildDir/reports/jacoco")
+        outputDir.mkdirs()
+        new File(outputDir, 'index.html').text = html.toString()
+        println("\nJaCoCo project index: file://${outputDir.absolutePath}/index.html")
+    }
 }
 
 tasks.register('injectJacocoCustomCss') {
@@ -209,7 +271,7 @@ tasks.register('injectJacocoCustomCss') {
         }
     }
 }
-testCodeCoverageReport.finalizedBy injectJacocoCustomCss
+testCodeCoverageReport.finalizedBy injectJacocoCustomCss, createProjectIndex.get()
 
 task configureAndroidNDK {
     def ndkBuildFile = "ndk-build"
