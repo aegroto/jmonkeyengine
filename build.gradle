@@ -269,6 +269,7 @@ def createProjectIndex = tasks.register('createProjectIndex') {
 
 tasks.register('injectJacocoCustomCss') {
     dependsOn testCodeCoverageReport
+    inputs.file("$rootDir/config/jacoco/jacoco-custom.css")
     doLast {
         def css = file("$rootDir/config/jacoco/jacoco-custom.css")
         if (css.exists()) {

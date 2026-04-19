@@ -269,6 +269,15 @@ pre.Code {
   overflow-x: auto;
 }
 
+/* Source view line coverage highlighting */
+.fc  { background-color: #0d260d; color: #e0ffe0; }
+.nc  { background-color: #260d0d; color: #ffe0e0; }
+.pc  { background-color: #26200d; color: #ffffcc; }
+
+.bfc { background-color: #0d260d; }
+.bpc { background-color: #26200d; }
+.bnc { background-color: #260d0d; }
+
 code.linenumber {
   color: var(--foreground2);
   padding-right: 0.8rem;

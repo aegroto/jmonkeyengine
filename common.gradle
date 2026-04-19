@@ -94,6 +94,7 @@ jacocoTestReport {
         xml.required = true
         html.required = true
     }
+    inputs.file("$rootDir/config/jacoco/jacoco-custom.css")
 }
 
 jacocoTestReport {
