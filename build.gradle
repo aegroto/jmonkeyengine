@@ -200,8 +200,8 @@ tasks.register('jacocoTestReport') {
                     if (jacocoFormat == 'html') {
                         def projHtml = new File(projReportDir, 'html')
                         if (projHtml.exists() && projHtml.directory) {
-                            projHtml.eachFile { f -> 
-                                copy { from f into htmlDir }
+                            ant.copy(todir: htmlDir.absolutePath) {
+                                fileset(dir: projHtml.absolutePath)
                             }
                         }
                     }
@@ -239,11 +239,11 @@ def injectCustomCss(File htmlDir) {
         ant.copy(file: cssFile.absolutePath, tofile: targetCssFile.absolutePath)
     }
 
-    htmlDir.eachFile { f ->
+    htmlDir.eachFileRecurse { f ->
         if (f.name.endsWith('.html')) {
             def content = f.text
             def replaced = false
-            
+
             if (content.contains('href="jacoco-resources/report.css"')) {
                 content = content.replace(
                     '<link rel="stylesheet" href="jacoco-resources/report.css"',
@@ -251,7 +251,7 @@ def injectCustomCss(File htmlDir) {
                 )
                 replaced = true
             }
-            
+
             if (content.contains('href="../jacoco-resources/report.css"')) {
                 content = content.replace(
                     '<link rel="stylesheet" href="../jacoco-resources/report.css"',
