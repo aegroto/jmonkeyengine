@@ -117,7 +117,7 @@ def createProjectIndex = tasks.register('createProjectIndex') {
                 h1('jMonkeyEngine Code Coverage')
                 table {
                     tr { th('Project'); th('Coverage'); th('Report') }
-                    def parser = new groovy.xml.XmlSlurper(false, false)
+                    def parser = new groovy.xml.XmlSlurper()
                     parser.setFeature("http://apache.org/xml/features/disallow-doctype-decl", false)
                     parser.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false)
 
